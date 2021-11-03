@@ -7,9 +7,25 @@ const route = express.Router();
 // == GET ALL PRODUCTS ==
 route.get("/", (req, res, next) => {
     Product.find()
+        .select("name price qty _id")
         .exec()
         .then(data => {
-            res.status(200).json(data);
+            const response = {
+                count: data.length,
+                data: data.map(product => {
+                    return {
+                        _id: product._id,
+                        name: product.name,
+                        qty: product.qty,
+                        price: product.price,
+                        request: {
+                            type: "GET",
+                            url: `${req.protocol}://${req.get('host')}${req.originalUrl}${product._id}`
+                        }
+                    }
+                })
+            }
+            res.status(200).json(response);
         })
         .catch(err => {
             res.status(500).json({ error: err });
@@ -26,10 +42,20 @@ route.post("/", (req, res, next) => {
     });
 
     product.save().then(result => {
-        res.status(201).json({
+        const response = {
             message: "product has been created",
-            product: result
-        });
+            data: {
+                _id: result._id,
+                name: result.name,
+                qty: result.qty,
+                price: result.price,
+                request: {
+                    type: "GET",
+                    url: `${req.protocol}://${req.get('host')}${req.originalUrl}${result._id}`
+                }
+            }
+        }
+        res.status(201).json(response);
     }).catch(error => {
         res.status(500).json({ error: err });
     });
@@ -41,12 +67,20 @@ route.get("/:productId", (req, res, next) => {
 
     Product.findById(productId)
         .exec()
-        .then(data => {
-            if (data) {
-                res.status(200).json(data);
-            } else {
-                res.status(404).json({ message: `ID ${productId} is not found` })
+        .then(result => {
+            const response = {
+                data: {
+                    _id: result._id,
+                    name: result.name,
+                    qty: result.qty,
+                    price: result.price,
+                    request: {
+                        type: "GET",
+                        url: `${req.protocol}://${req.get('host')}${req.originalUrl}${result._id}`
+                    }
+                }
             }
+            res.status(200).json(response);
         })
         .catch(err => {
             res.status(500).json({ error: err });
@@ -65,7 +99,16 @@ route.patch("/:productId", (req, res, next) => {
     Product.updateOne({ _id: productId }, { $set: updateData })
         .exec()
         .then(result => {
-            res.status(200).json(result);
+            const response = {
+                data: {
+                    message: "product has been updated",
+                    request: {
+                        type: "GET",
+                        url: `${req.protocol}://${req.get('host')}${req.originalUrl}${productId}`
+                    }
+                }
+            }
+            res.status(200).json(response);
         })
         .catch(err => {
             res.status(500).json({ error: err });

@@ -6,10 +6,11 @@ const mongoose = require("mongoose");
 const productRoutes = require('./api/routes/products');
 const orderRoutes = require('./api/routes/orders');
 const handlers = require("./handlers");
+const config = require("./config");
 
 const app = express();
 
-mongoose.connect("mongodb+srv://shop-rest:shop-rest@shop-rest-api.o6xrx.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+mongoose.connect(config.database);
 
 app.use(morgan("dev"));
 app.use(bodyParser.urlencoded({ extended: false }));
