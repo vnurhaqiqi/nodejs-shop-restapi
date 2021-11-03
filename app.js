@@ -1,12 +1,16 @@
 const express = require("express");
 const morgan = require("morgan");
 const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
 
 const productRoutes = require('./api/routes/products');
 const orderRoutes = require('./api/routes/orders');
 const handlers = require("./handlers");
+const config = require("./config");
 
 const app = express();
+
+mongoose.connect(config.database);
 
 app.use(morgan("dev"));
 app.use(bodyParser.urlencoded({ extended: false }));

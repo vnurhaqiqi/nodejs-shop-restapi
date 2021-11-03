@@ -1,25 +1,63 @@
 const express = require("express");
+const mongoose = require("mongoose");
+const Product = require("../models/products");
 
 const route = express.Router();
 
 // == GET ALL PRODUCTS ==
 route.get("/", (req, res, next) => {
-    res.status(200).json({
-        message: "GET products"
-    })
+    Product.find()
+        .select("name price qty _id")
+        .exec()
+        .then(data => {
+            const response = {
+                count: data.length,
+                data: data.map(product => {
+                    return {
+                        _id: product._id,
+                        name: product.name,
+                        qty: product.qty,
+                        price: product.price,
+                        request: {
+                            type: "GET",
+                            url: `${req.protocol}://${req.get('host')}${req.originalUrl}${product._id}`
+                        }
+                    }
+                })
+            }
+            res.status(200).json(response);
+        })
+        .catch(err => {
+            res.status(500).json({ error: err });
+        });
 });
 
 // == ADD PRODUCT ==
 route.post("/", (req, res, next) => {
-    const productPayload = {
+    const product = new Product({
+        _id: new mongoose.Types.ObjectId(),
         name: req.body.name,
         qty: req.body.qty,
         price: req.body.price
-    }
+    });
 
-    res.status(201).json({
-        message: "product has been created",
-        product: productPayload
+    product.save().then(result => {
+        const response = {
+            message: "product has been created",
+            data: {
+                _id: result._id,
+                name: result.name,
+                qty: result.qty,
+                price: result.price,
+                request: {
+                    type: "GET",
+                    url: `${req.protocol}://${req.get('host')}${req.originalUrl}${result._id}`
+                }
+            }
+        }
+        res.status(201).json(response);
+    }).catch(error => {
+        res.status(500).json({ error: err });
     });
 });
 
@@ -27,51 +65,68 @@ route.post("/", (req, res, next) => {
 route.get("/:productId", (req, res, next) => {
     const productId = req.params.productId;
 
-    if (productId) {
-        res.status(200).json({
-            message: `GET product id ${productId}`,
-            id: productId
+    Product.findById(productId)
+        .exec()
+        .then(result => {
+            const response = {
+                data: {
+                    _id: result._id,
+                    name: result.name,
+                    qty: result.qty,
+                    price: result.price,
+                    request: {
+                        type: "GET",
+                        url: `${req.protocol}://${req.get('host')}${req.originalUrl}${result._id}`
+                    }
+                }
+            }
+            res.status(200).json(response);
+        })
+        .catch(err => {
+            res.status(500).json({ error: err });
         });
-    } else {
-        res.status(404).json({
-            message: `product id ${productId} not found`,
-            id: productId
-        });
-    }
 });
 
 // == UPDATE PRODUCT ==
 route.patch("/:productId", (req, res, next) => {
     const productId = req.params.productId;
+    const updateData = {}
 
-    if (productId) {
-        res.status(200).json({
-            message: `UPDATE product id ${productId}`,
-            id: productId
-        });
-    } else {
-        res.status(404).json({
-            message: `product id ${productId} not found`,
-            id: productId
-        });
+    for (const up of req.body) {
+        updateData[up.propName] = up.value;
     }
+
+    Product.updateOne({ _id: productId }, { $set: updateData })
+        .exec()
+        .then(result => {
+            const response = {
+                data: {
+                    message: "product has been updated",
+                    request: {
+                        type: "GET",
+                        url: `${req.protocol}://${req.get('host')}${req.originalUrl}${productId}`
+                    }
+                }
+            }
+            res.status(200).json(response);
+        })
+        .catch(err => {
+            res.status(500).json({ error: err });
+        });
 });
 
 // == DELETE PRODUCT ==
 route.delete("/:productId", (req, res, next) => {
     const productId = req.params.productId;
 
-    if (productId) {
-        res.status(200).json({
-            message: `DELETE product id ${productId}`,
-            id: productId
+    Product.remove({ _id: productId })
+        .exec()
+        .then(result => {
+            res.status(200).json({ message: `product with ID ${productId} has been deleted` });
+        })
+        .catch(err => {
+            res.status(500).json({ error: err });
         });
-    } else {
-        res.status(404).json({
-            message: `product id ${productId} not found`,
-            id: productId
-        });
-    }
 });
 
 module.exports = route;
