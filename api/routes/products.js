@@ -9,10 +9,10 @@ route.get("/", (req, res, next) => {
     Product.find()
         .select("name price qty _id")
         .exec()
-        .then(data => {
+        .then(result => {
             const response = {
-                count: data.length,
-                data: data.map(product => {
+                count: result.length,
+                data: result.map(product => {
                     return {
                         _id: product._id,
                         name: product.name,
@@ -68,19 +68,25 @@ route.get("/:productId", (req, res, next) => {
     Product.findById(productId)
         .exec()
         .then(result => {
-            const response = {
-                data: {
-                    _id: result._id,
-                    name: result.name,
-                    qty: result.qty,
-                    price: result.price,
-                    request: {
-                        type: "GET",
-                        url: `${req.protocol}://${req.get('host')}${req.originalUrl}${result._id}`
+            if (!result) {
+                return res.status(404).json({
+                    message: "product not found"
+                })
+            } else {
+                const response = {
+                    data: {
+                        _id: result._id,
+                        name: result.name,
+                        qty: result.qty,
+                        price: result.price,
+                        request: {
+                            type: "GET",
+                            url: `${req.protocol}://${req.get('host')}${req.originalUrl}`
+                        }
                     }
                 }
+                res.status(200).json(response);
             }
-            res.status(200).json(response);
         })
         .catch(err => {
             res.status(500).json({ error: err });
