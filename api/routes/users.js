@@ -1,92 +1,14 @@
 const express = require("express");
-const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const User = require("../models/users");
+
+const userController = require("../controllers/users");
 
 const route = express.Router();
 
 // == ADD USER ==
-route.post("/signup", (req, res, next) => {
-    User.find({ email: req.body.email })
-        .exec()
-        .then(user => {
-            if (user.length >= 1) {
-                return res.status(409).json({
-                    message: "user already exist"
-                });
-            } else {
-                bcrypt.hash(req.body.password, 10, (err, hash) => {
-                    if (err) {
-                        res.status(500).json({
-                            error: err
-                        });
-                    } else {
-                        const user = new User({
-                            _id: mongoose.Types.ObjectId(),
-                            name: req.body.name,
-                            email: req.body.email,
-                            password: hash
-                        })
-                            .save()
-                            .then(result => {
-                                const response = {
-                                    message: "user has been registered"
-                                }
-                                res.status(201).json(response);
-                            })
-                            .catch(err => {
-                                res.status(500).json({ error: err });
-                            });
-                    }
-                });
-            }
-        })
-        .catch(err => {
-            res.status(500).json({ error: err });
-        });
-});
+route.post("/signup", userController.users_signup);
 
 // == SIGN IN USER ==
-route.post("/signing", (req, res, next) => {
-    User.findOne({ email: req.body.email })
-        .exec()
-        .then(user => {
-            if (!user) {
-                return res.status(401).json({
-                    message: "auth failed: email unregistered"
-                });
-            }
-
-            bcrypt.compare(req.body.password, user.password, (err, result) => {
-                if (err) {
-                    return res.status(401).json({
-                        message: "auth failed"
-                    });
-                }
-                if (result) {
-                    const jwtPayload = {
-                        id: user._id,
-                        name: user.name,
-                        email: user.email
-                    }
-
-                    const token = jwt.sign(jwtPayload, process.env.JWT_KEY, { expiresIn: "12h" });
-
-                    return res.status(200).json({
-                        message: "auth success",
-                        token: token
-                    });
-                }
-                return res.status(401).json({
-                    message: "auth failed: wrong email and password"
-                });
-            });
-        })
-        .catch(err => {
-            res.status(500).json({ error: err });
-        });
-});
+route.post("/signing", userController.users_signing);
 
 
 module.exports = route;
