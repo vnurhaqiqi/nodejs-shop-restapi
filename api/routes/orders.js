@@ -1,118 +1,20 @@
 const express = require("express");
-const mongoose = require("mongoose");
-const Order = require("../models/orders");
-const Product = require("../models/products");
+
+const checkAuthToken = require("../middlewares/check-auth");
+const orderController = require("../controllers/orders");
 
 const route = express.Router();
 
 // == GET ALL ORDERS ==
-route.get("/", (req, res, next) => {
-    Order.find()
-        .populate("product", "name price")
-        .exec()
-        .then(result => {
-            const response = {
-                count: result.length,
-                data: result.map(order => {
-                    return {
-                        _id: order._id,
-                        qty: order.qty,
-                        product: order.product,
-                        request: {
-                            type: "GET",
-                            url: `${req.protocol}://${req.get('host')}${req.originalUrl}${order._id}`
-                        }
-                    }
-                })
-            }
-            res.status(200).json(response);
-        })
-        .catch(err => {
-            res.status(500).json({
-                error: err
-            })
-        });
-});
+route.get("/", checkAuthToken, orderController.orders_get_all);
 
 // == CREATE ORDER ==
-route.post("/", (req, res, next) => {
-    Product.findById(req.body.productId)
-        .then(product => {
-            if (!product) {
-                return res.status(500).json({
-                    message: "product not found",
-                });
-            } else {
-                const order = new Order({
-                    _id: mongoose.Types.ObjectId(),
-                    product: product._id,
-                    qty: req.body.qty
-                });
-                return order.save();
-            }
-        }).then(result => {
-            const response = {
-                message: "order has been created",
-                data: {
-                    _id: result._id,
-                    qty: result.qty,
-                    product: result.product,
-                    request: {
-                        type: "GET",
-                        url: `${req.protocol}://${req.get('host')}${req.originalUrl}${result._id}`
-                    }
-                }
-            }
-            res.status(201).json(response);
-        }).catch(err => {
-            res.status(500).json({ error: err });
-        });
-});
+route.post("/", checkAuthToken, orderController.orders_create);
 
 // == GET DETAILS ORDER ==
-route.get("/:orderId", (req, res, next) => {
-    const orderId = req.params.orderId;
-
-    Order.findById(orderId)
-        .populate("product", "name price")
-        .exec()
-        .then(result => {
-            if (!result) {
-                return res.status(404).json({
-                    message: "order not found",
-                });
-            } else {
-                const response = {
-                    data: {
-                        _id: result._id,
-                        qty: result.qty,
-                        product: result.product,
-                        request: {
-                            type: "GET",
-                            url: `${req.protocol}://${req.get('host')}${req.originalUrl}/`
-                        }
-                    }
-                }
-                res.status(200).json(response);
-            }
-        })
-        .catch(err => {
-            res.status(500).json({ error: err });
-        });
-});
+route.get("/:orderId", checkAuthToken, orderController.orders_get_by_id);
 
 // == DELETE ORDER ==
-route.delete("/:orderId", (req, res, next) => {
-    const orderId = req.params.orderId;
-
-    Order.remove({ _id: orderId })
-        .exec()
-        .then(result => {
-            res.status(200).json({ message: `order with ID ${orderId} has been deleted` });
-        })
-        .catch(err => {
-            res.status(500).json({ error: err });
-        });
-});
+route.delete("/:orderId", checkAuthToken, orderController.orders_delete_by_id);
 
 module.exports = route;
