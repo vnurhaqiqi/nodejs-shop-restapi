@@ -72,13 +72,69 @@ exports.users_signing = (req, res, next) => {
 
                     return res.status(200).json({
                         message: "auth success",
-                        token: token
+                        token: token,
+                        userId: user._id
                     });
                 }
                 return res.status(401).json({
                     message: "auth failed: wrong email and password"
                 });
             });
+        })
+        .catch(err => {
+            res.status(500).json({ error: err });
+        });
+};
+
+// == GET USER PROFILE ==
+exports.users_get_profile_by_id = (req, res, next) => {
+    const userId = req.params.userId;
+
+    User.findById(userId)
+        .exec()
+        .then(result => {
+            if (!result) {
+                return res.status(404).json({
+                    message: "user not found"
+                });
+            }
+
+            const response = {
+                _id: result._id,
+                name: result.name,
+                email: result.email,
+                phone: result.phone
+            }
+            res.status(200).json(response);
+        })
+        .catch(err => {
+            res.status(500).json({ error: err });
+        });
+};
+
+// == USERS EDIT PROFILE ==
+exports.users_update_profile = (req, res, next) => {
+    const userId = req.params.userId;
+
+    const updateData = {}
+
+    for (const up of req.body) {
+        updateData[up.propName] = up.value;
+    }
+
+    User.updateOne({ _id: userId, $set: updateData })
+        .exec()
+        .then(result => {
+            const response = {
+                data: {
+                    message: "profile has been updated",
+                    request: {
+                        type: "GET",
+                        url: `${req.protocol}://${req.get('host')}${req.originalUrl}${userId}`
+                    }
+                }
+            }
+            res.status(200).json(response);
         })
         .catch(err => {
             res.status(500).json({ error: err });

@@ -2,11 +2,13 @@ const mongoose = require("mongoose");
 
 const Order = require("../models/orders");
 const Product = require("../models/products");
+const User = require("../models/users");
 
 // == GET ALL ORDERS DATA ==
 exports.orders_get_all = (req, res, next) => {
     Order.find()
         .populate("product", "name price")
+        .populate("user", "name")
         .exec()
         .then(result => {
             const response = {
@@ -45,6 +47,7 @@ exports.orders_create = (req, res, next) => {
                 const order = new Order({
                     _id: mongoose.Types.ObjectId(),
                     product: product._id,
+                    customer: req.body.userId,
                     qty: req.body.qty
                 });
                 return order.save();
@@ -74,7 +77,7 @@ exports.orders_get_by_id = (req, res, next) => {
     const orderId = req.params.orderId;
 
     Order.findById(orderId)
-        .populate("product", "name price")
+        .populate("product")
         .exec()
         .then(result => {
             if (!result) {
@@ -87,6 +90,7 @@ exports.orders_get_by_id = (req, res, next) => {
                         _id: result._id,
                         qty: result.qty,
                         product: result.product,
+                        customer: result.customer,
                         request: {
                             type: "GET",
                             url: `${req.protocol}://${req.get('host')}${req.originalUrl}/`
