@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const Product = require("../models/products");
+const checkAuthToken = require("../middlewares/check-auth");
+
 
 const route = express.Router();
 
@@ -33,7 +34,7 @@ route.get("/", (req, res, next) => {
 });
 
 // == ADD PRODUCT ==
-route.post("/", (req, res, next) => {
+route.post("/", checkAuthToken, (req, res, next) => {
     const product = new Product({
         _id: new mongoose.Types.ObjectId(),
         name: req.body.name,
@@ -94,7 +95,7 @@ route.get("/:productId", (req, res, next) => {
 });
 
 // == UPDATE PRODUCT ==
-route.patch("/:productId", (req, res, next) => {
+route.patch("/:productId", checkAuthToken, (req, res, next) => {
     const productId = req.params.productId;
     const updateData = {}
 
@@ -122,7 +123,7 @@ route.patch("/:productId", (req, res, next) => {
 });
 
 // == DELETE PRODUCT ==
-route.delete("/:productId", (req, res, next) => {
+route.delete("/:productId", checkAuthToken, (req, res, next) => {
     const productId = req.params.productId;
 
     Product.remove({ _id: productId })

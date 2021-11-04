@@ -1,11 +1,12 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const User = require("../models/users");
 
 const route = express.Router();
 
-// ADD USER
+// == ADD USER ==
 route.post("/signup", (req, res, next) => {
     User.find({ email: req.body.email })
         .exec()
@@ -40,6 +41,47 @@ route.post("/signup", (req, res, next) => {
                     }
                 });
             }
+        })
+        .catch(err => {
+            res.status(500).json({ error: err });
+        });
+});
+
+// == SIGN IN USER ==
+route.post("/signing", (req, res, next) => {
+    User.findOne({ email: req.body.email })
+        .exec()
+        .then(user => {
+            if (!user) {
+                return res.status(401).json({
+                    message: "auth failed: email unregistered"
+                });
+            }
+
+            bcrypt.compare(req.body.password, user.password, (err, result) => {
+                if (err) {
+                    return res.status(401).json({
+                        message: "auth failed"
+                    });
+                }
+                if (result) {
+                    const jwtPayload = {
+                        id: user._id,
+                        name: user.name,
+                        email: user.email
+                    }
+
+                    const token = jwt.sign(jwtPayload, process.env.JWT_KEY, { expiresIn: "12h" });
+
+                    return res.status(200).json({
+                        message: "auth success",
+                        token: token
+                    });
+                }
+                return res.status(401).json({
+                    message: "auth failed: wrong email and password"
+                });
+            });
         })
         .catch(err => {
             res.status(500).json({ error: err });

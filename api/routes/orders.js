@@ -1,12 +1,14 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const checkAuthToken = require("../middlewares/check-auth");
+
 const Order = require("../models/orders");
 const Product = require("../models/products");
 
 const route = express.Router();
 
 // == GET ALL ORDERS ==
-route.get("/", (req, res, next) => {
+route.get("/", checkAuthToken, (req, res, next) => {
     Order.find()
         .populate("product", "name price")
         .exec()
@@ -35,7 +37,7 @@ route.get("/", (req, res, next) => {
 });
 
 // == CREATE ORDER ==
-route.post("/", (req, res, next) => {
+route.post("/", checkAuthToken, (req, res, next) => {
     Product.findById(req.body.productId)
         .then(product => {
             if (!product) {
@@ -70,7 +72,7 @@ route.post("/", (req, res, next) => {
 });
 
 // == GET DETAILS ORDER ==
-route.get("/:orderId", (req, res, next) => {
+route.get("/:orderId", checkAuthToken, (req, res, next) => {
     const orderId = req.params.orderId;
 
     Order.findById(orderId)
@@ -102,7 +104,7 @@ route.get("/:orderId", (req, res, next) => {
 });
 
 // == DELETE ORDER ==
-route.delete("/:orderId", (req, res, next) => {
+route.delete("/:orderId", checkAuthToken, (req, res, next) => {
     const orderId = req.params.orderId;
 
     Order.remove({ _id: orderId })
